@@ -7,7 +7,14 @@ export class GeminiService {
   private apiKey: string;
 
   constructor() {
-    const key = process.env.API_KEY || '';
+    // Safely retrieve API key, handling environments where process might be undefined
+    let key = '';
+    try {
+      key = (typeof process !== 'undefined' && process.env.API_KEY) ? process.env.API_KEY : '';
+    } catch (e) {
+      console.warn("Error accessing process.env, defaulting to empty key");
+    }
+
     if (!key) {
       console.warn("API Key not found in environment variables.");
     }

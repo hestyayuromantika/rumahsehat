@@ -22,7 +22,16 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const geminiService = useRef(new GeminiService());
+  
+  // Lazy initialization of the service to prevent re-creation on every render
+  const geminiServiceRef = useRef<GeminiService | null>(null);
+  
+  const getGeminiService = () => {
+    if (!geminiServiceRef.current) {
+      geminiServiceRef.current = new GeminiService();
+    }
+    return geminiServiceRef.current;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,8 +58,10 @@ const App: React.FC = () => {
     setActiveAgent(AgentType.NAVIGATOR); // Start with Navigator
 
     try {
+      const service = getGeminiService();
+
       // 1. Send to Navigator (Router)
-      const routingResult = await geminiService.current.processNavigatorRequest(userMsg.content);
+      const routingResult = await service.processNavigatorRequest(userMsg.content);
 
       if (routingResult.targetAgent) {
         // Log the delegation for the user to see transparency
@@ -68,7 +79,7 @@ const App: React.FC = () => {
         // Artificial delay for UI effect of "switching modules"
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        const agentResponse = await geminiService.current.executeSpecialistAgent(
+        const agentResponse = await service.executeSpecialistAgent(
           routingResult.targetAgent,
           routingResult.delegatedQuery
         );
