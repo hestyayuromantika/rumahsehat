@@ -1,0 +1,5 @@
+{
+  "name": "Hospital System Navigator",
+  "description": "A secure Medical AI Delegation Hub that strictly validates intent and delegates tasks to specialized sub-agents for records, billing, admin, and scheduling.",
+  "requestFramePermissions": []
+}
