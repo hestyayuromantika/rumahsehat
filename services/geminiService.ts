@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Tool } from "@google/genai";
 import { AgentType, RoutingResult } from "../types";
 import { NAVIGATOR_SYSTEM_INSTRUCTION, NAVIGATOR_TOOLS, AGENT_SYSTEM_INSTRUCTIONS } from "../constants";
 
@@ -7,9 +7,6 @@ export class GeminiService {
   private apiKey: string;
 
   constructor() {
-    // According to instructions, we strictly use process.env.API_KEY
-    // Note: In a real client-side only demo, this requires the build tool to inject it or a proxy.
-    // Ideally, for a secure medical app, this happens server-side.
     const key = process.env.API_KEY || '';
     if (!key) {
       console.warn("API Key not found in environment variables.");
@@ -37,7 +34,7 @@ export class GeminiService {
         config: {
           systemInstruction: NAVIGATOR_SYSTEM_INSTRUCTION,
           tools: [{ functionDeclarations: NAVIGATOR_TOOLS }],
-          // We let the model decide if it needs to call a tool or just chat (e.g., for "Hi")
+          temperature: 0, // Lower temperature for stricter routing
         },
       });
 
@@ -74,13 +71,13 @@ export class GeminiService {
         return {
           targetAgent,
           delegatedQuery,
-          reasoning: `Intent verified. Routing to ${fnName}.`,
+          reasoning: `Intent verified. Delegating to ${fnName}.`,
         };
       } else {
         // Model didn't call a tool (likely general chit-chat or refusal)
         return {
           targetAgent: null,
-          delegatedQuery: response.text || "I am the Hospital Navigator. How can I direct you?",
+          delegatedQuery: response.text || "I am the Hospital System Navigator. How can I direct your request?",
           reasoning: "General Interaction",
         };
       }
@@ -94,9 +91,18 @@ export class GeminiService {
   /**
    * Step 2: Execute the specialized agent.
    * This simulates the "Sub-Agent" processing the delegated query.
+   * We enable Google Search for relevant agents.
    */
   async executeSpecialistAgent(agentType: AgentType, query: string): Promise<string> {
     if (!this.apiKey) throw new Error("API Key is missing.");
+
+    // Define tools for specialist agents
+    const tools: Tool[] = [];
+    
+    // According to mandates: Billing, PatientInfo, and Scheduler can use Google Search
+    if ([AgentType.BILLING_INSURANCE, AgentType.PATIENT_INFO, AgentType.APPOINTMENT_SCHEDULER].includes(agentType)) {
+      tools.push({ googleSearch: {} });
+    }
 
     try {
       const response = await this.client.models.generateContent({
@@ -109,16 +115,17 @@ export class GeminiService {
         ],
         config: {
           systemInstruction: AGENT_SYSTEM_INSTRUCTIONS[agentType],
-          // Sub-agents don't have tools in this demo, they produce the final output mandate.
-          // In a full system, they might have their own tools (database access, etc.)
+          tools: tools.length > 0 ? tools : undefined,
         },
       });
 
+      // The response.text property getter handles checking various parts (including grounding) 
+      // provided by the @google/genai SDK.
       return response.text || "Agent processed the request but returned no content.";
 
     } catch (error) {
       console.error(`Agent ${agentType} Error:`, error);
-      return "An error occurred within the specialist module.";
+      return `An error occurred within the ${agentType} module.`;
     }
   }
 }

@@ -12,7 +12,7 @@ const App: React.FC = () => {
       id: 'welcome',
       role: 'model',
       agent: AgentType.NAVIGATOR,
-      content: "Hello. I am the **Hospital System Navigator**. I am here to securely delegate your requests to our specialized units: Medical Records, Billing, Patient Admin, or Scheduling. How may I assist you today?",
+      content: "Hello. I am the **Hospital System Navigator**, your Medical AI Delegation Hub. \n\nI ensure your requests are handled securely by delegating them to our specialized units:\n\n* **Medical Records** (Security Mandate)\n* **Billing & Finance** (Transparency Mandate)\n* **Patient Admin** (Documentation Mandate)\n* **Scheduling** (Logistics Mandate)\n\nHow may I direct you today?",
       timestamp: Date.now(),
     }
   ]);
@@ -147,7 +147,7 @@ const App: React.FC = () => {
              )}
               {processing && activeAgent && activeAgent !== AgentType.NAVIGATOR && (
                <div className="flex justify-start ml-12 text-xs text-slate-400 animate-pulse mt-4">
-                 {AGENT_METADATA[activeAgent].name} is generating output mandate...
+                 {AGENT_METADATA[activeAgent].name} is processing mandate...
                </div>
              )}
              <div ref={messagesEndRef} />
